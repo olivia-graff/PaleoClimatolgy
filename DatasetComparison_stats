@@ -1,0 +1,216 @@
+"""
+Created on Fri Nov 19 15:20:57 2021
+
+@author: ograff
+"""
+
+#reading LMR v 2.0  -- actually im going to 
+import pandas as pd
+# Import the necessary python packages
+import numpy as np
+import matplotlib.pyplot as plt
+import cartopy.crs as ccrs
+import seaborn as sns
+import cartopy.feature as cfeature
+from load_gridded_data import read_gridded_data_NOAA20CR
+import scipy.stats
+from scipy.stats.mstats import linregress
+import cartopy.feature as cfeature
+import proplot #conda install -c conda-forge proplot
+import warnings
+import xarray as xr
+warnings.filterwarnings('ignore')
+
+
+range1501_2001 = []
+#to open the csv with all data and all rows 
+df_excel = pd.read_csv('/Users/ograff/Downloads/ENSO_Proxy_Reconstructions_version3.csv',header = 0)
+#,skiprows =1)
+
+#I deleted the temporal range line to make my life easier, but copied ito onto a new excel sheet so its not lost
+
+#to get the first coloumn of data: (you can do this by putting in the title name for any column)
+LMRNino34 = df_excel['Freund et al (2019)']
+
+#we want years 1501 to 2001 so loop through and append to an array
+LMR1501_2001 = []
+
+# for i in range(len(LMRNino34)):
+#     if i >= 1501 or i <= 2001:
+#         LMR1501_2001.append(LMRNino34[i])
+#needs to only be 150 years??? so the data matches???
+for i in range(1851,2002):
+    LMR1501_2001.append(LMRNino34[i])
+    
+#print(LMR1501_2001) 
+#-----------------------------------------------------------------------------
+ 
+    
+#now need to open her data and append it to an array
+proxies = pd.read_pickle('/Users/ograff/Downloads/LMR/LMR_data/data/proxies/Pages2kv1_Proxies.df.pckl')
+metadata = pd.read_pickle('/Users/ograff/Downloads/LMR/LMR_data/data/proxies/Pages2kv1_Metadata.df.pckl')
+
+# a bunch of PAGES2k style settings
+class PAGES2k(object):
+    archive_types = ['Bivalve', 'Borehole', 'Coral', 'Documentary', 'Ice core', 'Hybrid', 'Lake/wetland sediments', 'Lake sediment', 'Marine sediment', 
+                     'Marine sediments', 'Sclerosponge', 'Speleothem', 'Tree ring', 'Historic', 'Instrumental','Hyrax midden']
+    markers = ['p', 'p', 'o', 'v', 'd', '*', 's', 's', '8','8', 'D', '^','h','1','2','3']
+    markers_dict = dict(zip(archive_types, markers))
+    
+    colors = [np.array([ 1.        ,  0.83984375,  0.        ]),
+              np.array([ 0.73828125,  0.71484375,  0.41796875]),
+              np.array([ 1.        ,  0.546875  ,  0.        ]),
+              np.array([ 0.41015625,  0.41015625,  0.41015625]),
+              np.array([ 0.52734375,  0.8046875 ,  0.97916667]),
+              np.array([ 0.        ,  0.74609375,  1.        ]),
+              np.array([ 0.25390625,  0.41015625,  0.87890625]),
+              np.array([ 0.25390625,  0.41015625,  0.87890625]),
+              np.array([ 0.54296875,  0.26953125,  0.07421875]),
+              np.array([ 0.54296875,  0.26953125,  0.07421875]),
+              np.array([ 1         ,           0,           0]),
+              np.array([ 1.        ,  0.078125  ,  0.57421875]),
+              np.array([ 0.1953125 ,  0.80078125,  0.1953125 ]),
+              np.array([ 0.1953125 ,  0.80078125,  0.8 ]),
+              np.array([ 0.2 ,  0.2,  0.8 ]),
+              np.array([ 0.8 ,  0.80078125,  0.8 ])]
+    colors_dict = dict(zip(archive_types, colors))
+    
+        
+def plot_sites(df, title=None, lon_col='Lon (E)', lat_col='Lat (N)', archiveType_col='Archive type',
+                title_size=20, title_weight='bold', figsize=[12, 9], projection=ccrs.Robinson(), markersize=50,
+                plot_legend=True, legend_ncol=3, legend_anchor=(0, -0.4), legend_fontsize=15, frameon=False, ax=None, set_global=True, plot_countries=False):
+    ''' Plot the location of the sites on a map
+    Args: df (Pandas DataFrame): the Pandas DataFrame
+    Returns: ax (Axes): the map plot of the sites
+    '''
+
+    projection = ccrs.PlateCarree()
+    
+    p = PAGES2k()
+    if ax is None:
+        fig = plt.figure(figsize=figsize)
+        ax = plt.subplot(projection=projection)
+
+    sns.set(style="ticks", font_scale=2)
+
+    # plot map
+    if title:
+        plt.title(title, fontsize=title_size, fontweight=title_weight)
+
+    if set_global:
+        ax.set_global()
+    ax.add_feature(cfeature.LAND, facecolor='olivedrab', alpha=0.4)
+    ax.add_feature(cfeature.OCEAN, facecolor='paleturquoise', alpha=0.4)
+    ax.coastlines(color='black')
+    gl = ax.gridlines(edgecolor='black', linestyle=':', draw_labels = True, x_inline=False, y_inline=False)
+    #gl.right_labels = gl.top_labels = False
+    if plot_countries:
+        ax.add_feature(cfeature.BORDERS, edgecolor='black')
+
+    # plot markers by archive types
+    df_archiveType_set = np.unique(df[archiveType_col])
+    for type_name in df_archiveType_set:
+        selector = df[archiveType_col] == type_name
+        ax.scatter( df[selector][lon_col], df[selector][lat_col], marker=p.markers_dict[type_name], c=p.colors_dict[type_name], edgecolor='k', s=markersize, transform=ccrs.PlateCarree(), label=f'{type_name} (n={len(df[selector])})')
+    if plot_legend:
+        plt.legend(scatterpoints=1, bbox_to_anchor=legend_anchor, loc='lower left', ncol=legend_ncol, frameon=frameon, fontsize=legend_fontsize)
+    return ax
+
+
+metadata_treerings_NA = metadata[(metadata['Archive type']=='Tree ring') & (metadata['PAGES 2k Region']=='North America')&(metadata['Country/Region']=='Canada')] #narrowed dataframe to only tree ring records in canada
+meta_tr_SECA = metadata_treerings_NA.drop([385,388,389,390,397,398])
+#print((meta_tr_SECA))
+
+ax = plot_sites(meta_tr_SECA, title=f'PAGES2k Network (SE Canada Tree Rings, n={len(metadata)})')
+
+#==== Paleo Proxy Data =========
+proxyIDs_SECA = list(meta_tr_SECA['Proxy ID']) #getting list of Proxy IDs from metadata of SE CA Tree Rings
+print(proxyIDs_SECA)
+proxydata_SECA = proxies[proxyIDs_SECA] #isolating proxy time series df to columns with only proxies in SE CA
+mean_SECA = proxydata_SECA.loc[1850:2000].mean() #taking mean of 1850-2000 time period for EACH site
+std_SECA = proxydata_SECA.loc[1850:2000].std() #taking std of 1850-2000 time period for EACH site
+stdanoms_SECA = (proxydata_SECA - mean_SECA) / std_SECA #calculating standardized anomalies (based on 1850-2000 baseline) for EACH site
+stdanoms_SECA_COMPOSITE = stdanoms_SECA.mean(axis='columns') #composite mean at each time step across all sites in SE CA
+
+plt.figure(figsize=(15,8))
+ax = plt.axes([.1,.1,.8,.8])
+plt.plot(stdanoms_SECA_COMPOSITE,color='olive',marker='o',linewidth=1)
+plt.axhline(0,ls='--',lw=1,color='k')
+plt.title('Asia Tree Ring Record Composite Mean, Pages 2k')
+plt.xlabel("Year")
+plt.ylabel('Standardized Anomaly')
+plt.grid()
+plt.show()
+
+#=== Temp Obs data ====================
+#change this to lmr enso region
+ds = xr.open_dataset('/Users/ograff/Downloads/airtemp.sfc.mon.mean_noaa20cr.nc') #I put AirTemp file in same directory as notebook
+temp = ds.air.groupby('time.year').mean(dim='time') #annual mean temp (was monthly)
+temp = temp.sortby('lat').assign_coords(lon=(temp.lon.values + 180) % 360 - 180).sortby('lon') #rearraning to make lats ascending and going to -180 to 180 lons for simplicity, and sorting accordingly
+temp = temp.sel(year=slice(1850,2000),lat=slice(50,55), lon=slice(110,130)) #want this time frame and SE canada region - Do we want pacific?? probably 
+temp_anom = (temp - temp.mean(dim='year')) #/ temp.std(dim='year') #regular anomalies (NOT standardized) at each lat/lon grid cell through time
+temp_anom_COMPOSITE = temp_anom.mean(dim=['lat','lon']) #spatially averaging the standardized anomalies in SECA, should just be timeseries now
+ds.close()
+
+#difference at each time for the 
+tempmean = temp_anom_COMPOSITE.mean().values
+diff = stdanoms_SECA_COMPOSITE - temp_anom_COMPOSITE.mean().values
+
+#this one is nan from 1878-2000
+mask = np.isnan(stdanoms_SECA_COMPOSITE.loc[1850:2000]) # from 1850 - 2000 there are nans, for lin regression, values cant be nan
+print(mask)
+#~
+mask2 = np.isnan(LMR1501_2001) 
+print(mask2)
+#& ~np.isnan(stdanoms_SECA_COMPOSITE)
+mask3 = np.isnan(temp_anom_COMPOSITE) 
+print(mask3)
+
+m, b, rval, pval, stderr = linregress(LMR1501_2001,stdanoms_SECA_COMPOSITE.loc[1850:2000]) #+tempmean
+for name, val in zip(['m','b','R','R^2','pval','stderr'], [m,b,rval,rval**2,pval,stderr]):
+    print(f'{name}: {val}')
+
+# Make a figure of composite standardized anomalies
+plt.figure(figsize=(15,8))
+ax = plt.axes([.1,.1,.8,.8])
+ax.plot(np.arange(1850,2000+1), stdanoms_SECA_COMPOSITE.loc[1850:2000], color='dodgerblue',marker='o',linewidth=2,label=r'Paleo Proxy ($\sigma$)')
+ax.plot(np.arange(1850,2000+1), (stdanoms_SECA_COMPOSITE.loc[1850:2000]) / m,  color='green',marker='o',linewidth=1,label=r'Paleo Proxy CPS Method ($\sigma$)')
+ax.plot(np.arange(1850,2000+1), LMR1501_2001, color='orange',marker='o',linewidth=2,label=r'LMR Nino 3.4 Raw') 
+
+#ax.plot(temp_anom_COMPOSITE.year, temp_anom_COMPOSITE, color='red',marker='o',linewidth=1, label=r'Temp Anomaly ($\degree$C)')
+#ax.plot(temp_anom_COMPOSITE.year, LMR1501_2001, color='orange',marker='o',linewidth=1, label=r'LMR Nino 3.4 Raw($\degree$C)')
+
+ax.set_xlim(1850,2000)
+#ax.set_ylim(-1,1.2)
+#ax.set_ylim(-3.,3)
+ax.axhline(0,ls='--',lw=1,color='k')
+plt.title('SE Canada Tree Rings vs Temperature Composite Mean')
+plt.xlabel("Year")
+#ax.set_ylabel('Standardized Anomaly')
+plt.grid()
+plt.legend()
+plt.show()
+
+
+m, b, rval, pval, stderr = linregress(temp_anom_COMPOSITE, stdanoms_SECA_COMPOSITE.loc[1838:1987]) #+tempmean
+#m, b, rval, pval, stderr = linregress(stdanoms_Asia_COMPOSITE.loc[1851:2000], temp_anom_COMPOSITE)
+for name, val in zip(['m','b','R','R^2','pval','stderr'], [m,b,rval,rval**2,pval,stderr]):
+    print(f'{name}: {val}')
+
+# Make a figure of composite standardized anomalies
+plt.figure(figsize=(15,8))
+ax = plt.axes([.1,.1,.8,.8])
+ax.plot(np.arange(1850,2000+1), stdanoms_SECA_COMPOSITE.loc[1850:2000], color='dodgerblue',marker='o',linewidth=2,label=r'Paleo Proxy ($\sigma$)')
+ax.plot(np.arange(1850,2000+1), (stdanoms_SECA_COMPOSITE.loc[1850:2000]) / m,  color='green',marker='o',linewidth=1,label=r'Paleo Proxy CPS Method ($\sigma$)')
+ax.plot(temp_anom_COMPOSITE.year, temp_anom_COMPOSITE, color='red',marker='o',linewidth=1, label=r'Temp Anomaly ($\degree$C)')
+ax.set_xlim(1850,2000)
+#ax.set_ylim(-1,1.2)
+#ax.set_ylim(-3.,3)
+ax.axhline(0,ls='--',lw=1,color='k')
+plt.title('SE Canada Tree Rings vs Temperature Composite Mean')
+plt.xlabel("Year")
+#ax.set_ylabel('Standardized Anomaly')
+plt.grid()
+plt.legend()
+plt.show()
+
