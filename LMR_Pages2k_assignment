@@ -1,41 +1,37 @@
-#!/usr/bin/env python3
-# -*- coding: utf-8 -*-
-"""
-Created on Wed Nov 17 15:23:32 2021
+#!/usr/bin/env python
+# coding: utf-8
 
-@author: ograff
-"""
-
-# #The proxy database
-##
+# # Notebook #4: The proxy database
+# 
+# In this script, we'll take a look at one of the LMR inputs: the proxy database.
+# 
 # One of the initial steps of running the LMR is to preprocess the proxy network.  This step puts the data into a standard format and calculates annual-mean values, among other things.  Let's take a look at these standard files.
-
-# In[2]:
-
-
-# A non-python command to make sure all figures are plotted on this page.
-get_ipython().run_line_magic('matplotlib', 'inline')
-
 
 # In[1]:
 
 
-# Import the necessary python packages
+# Import the necessary python packages 
 import numpy as np
 import matplotlib.pyplot as plt
 import pandas as pd
 import cartopy.crs as ccrs
 import seaborn as sns
 import cartopy.feature as cfeature
+import xarray as xr
+from scipy import stats
+
 from load_gridded_data import read_gridded_data_NOAA20CR
 
+# A non-python command to make sure all figures are plotted on this page.
+get_ipython().run_line_magic('matplotlib', 'inline')
 
-# In[4]:
+
 
 
 # Load the proxy data and metadata using the pandas library.
 proxies = pd.read_pickle('/Users/ograff/Downloads/LMR/LMR_data/data/proxies/Pages2kv1_Proxies.df.pckl')
 metadata = pd.read_pickle('/Users/ograff/Downloads/LMR/LMR_data/data/proxies/Pages2kv1_Metadata.df.pckl')
+
 
 
 # The "type" and "shape" commands can be used to learn more about the data set.
@@ -44,18 +40,18 @@ print(type(proxies))
 print(proxies.shape)
 
 
-# In[6]:
-
-
 # The proxy metadata:
 print(type(metadata))
 print(metadata.shape)
 
+
 # Let's look at the contents of the proxy file.
 print(proxies)
 
+
 # The "keys" command shows all of the keys for this dataset.
 print(proxies.keys())
+
 
 
 # Display all of the fields in the metadata file.
@@ -66,47 +62,98 @@ print(metadata.keys())
 # Loop through every element of the metadata and print it to screen.
 for key in metadata.keys():
     print('%27s : %20s' % (key, metadata.loc[100][key]))
-    
+
+
+'''
 # We can write some code to search the metadata for a proxy we're interested in.
-search_string = 'North America'
+search_string = 'Europe'
+#3 change europe to asia 
+#search_string = 'Asia'
 field_to_search = 'PAGES 2k Region'
-na_array=[]
-searchstring='Tree ring'
-fieldtosearch='Archive type'
+
 #search_string = 'lake'
 #field_to_search = 'Archive type'
 
 # Loop through every key.  If part of the key matches the the search string, print the index and the key.
 n_proxies = metadata.shape[0]
 print('%5s: %20s: %20s: %20s:' % ('index','Site','Country/Region','Archive type'))
-#n_proxies
+for i in range(n_proxies):
+    if isinstance(metadata.loc[i][field_to_search], basestring):
+        if search_string.lower() in metadata.loc[i][field_to_search].lower():
+            print('%5s: %20s, %20s, %20s' % (i, metadata.loc[i]['Site'], metadata.loc[i]['Country/Region'],\
+                                              metadata.loc[i]['Archive type']))
+'''           
+# #5
+
+# We can write some code to search the metadata for a proxy we're interested in.
+search_string = 'North America'
+#3 change europe to asia 
+#search_string = 'Asia'
+field_to_search = 'PAGES 2k Region'
+asiaarr=[]
+#5 plotting
+search_string2 = 'Tree ring'
+field_to_search2 = 'Archive type'
+
+count = 0
 for i in range(386,404):
     if i != 389 or i != 390 or i != 397 or i != 398 :
         if isinstance(metadata.loc[i][field_to_search], str):
             if search_string.lower() in metadata.loc[i][field_to_search].lower():
                 print('%5s: %20s, %20s, %20s' % (i, metadata.loc[i]['Site'], metadata.loc[i]['Country/Region'], metadata.loc[i]['Archive type']))
-                na_array=np.append(na_array,i)
+                asiaarr=np.append(asiaarr,i)
 
-print(na_array)
+print(asiaarr)
+
+
+# # Loop through every key.  If part of the key matches the the search string, print the index and the key.
+# n_proxies = metadata.shape[0]
+# print('%5s: %20s: %20s: %20s:' % ('index','Site','Country/Region','Archive type'))
+# for i in range(n_proxies):
+#     if isinstance(metadata.loc[i][field_to_search], str):
+#         if search_string.lower() in metadata.loc[i][field_to_search].lower():
+#             print('%5s: %20s, %20s, %20s' % (i, metadata.loc[i]['Site'], metadata.loc[i]['Country/Region'],                                              metadata.loc[i]['Archive type']))
+#             count +=1
+#             asiaarr=np.append(asiaarr,i)
+            
+'''
+for i in range(n_proxies):
+    if isinstance(metadata.loc[i][field_to_search], str):
+        if search_string.lower() in metadata.loc[i][field_to_search].lower() and search_string2.lower() in metadata.loc[i][field_to_search2].lower():
+            print('%5s: %20s, %20s, %20s' % (i, metadata.loc[i]['Site'], metadata.loc[i]['Country/Region'],\
+                                              metadata.loc[i]['Archive type']))
+            asiaarr=np.append(asiaarr,i)
+'''
+
 
 
 # Choose the index of a record you're interested in.
-index_selected = 386
+#index_selected = 344
+#2 second part, change index to 101 and run
+index_selected = 101
+
 # Loop through every element of the metadata and print it to screen.
 for key in metadata.keys():
     print('%27s : %20s' % (key, metadata.loc[index_selected][key]))
 
-
-# Get the key of the desired record.
-proxyID_selected = metadata.loc[na_array]['Proxy ID']
+'''# Get the key of the desired record.
+proxyID_selected = metadata.loc[index_selected]['Proxy ID']
 print(proxyID_selected)
 
+# Get the data for this record.
+proxy_data = proxies[proxyID_selected]'''
+
+#5
+# Get the key of the desired record.
+proxyID_selected = metadata.loc[asiaarr]['Proxy ID']
+print(proxyID_selected)
 #5 plotting
 # Get the data for this record.
 proxy_data = proxies[proxyID_selected]
 print(proxy_data.shape) #years, #records per year
 standardize = (proxy_data - proxy_data.mean())/proxy_data.std()
 compose = standardize.mean(axis=1)
+
 
 
 # Save some useful metadata to new variables.
@@ -117,6 +164,11 @@ lon          = metadata.loc[index_selected]['Lon (E)']
 archive_type = metadata.loc[index_selected]['Archive type']
 measurement  = metadata.loc[index_selected]['Proxy measurement']
 
+
+#3 part 2
+#mean = np.mean(proxy_data)
+#std = np.std(proxy_data)
+#standardize = (proxy_data-mean)/ std
 
 #5 again can plot mean2 instead of what was done above
 mean = np.mean(proxy_data, axis = 0)
@@ -131,13 +183,26 @@ plt.style.use('ggplot')
 
 plt.figure(figsize=(15,5))
 ax = plt.axes([.1,.1,.8,.8])
-plt.plot(compose,color='k',marker='o',linewidth=1)
+plt.plot(compose,color='k',linewidth=0.2)
 #plt.title(str(site_name)+" ("+str(archive_type)+").  Lat: "+str(lat)+"$^\circ$N, Lon: "+\
           #str(lon)+"$^\circ$E\nReference: "+reference[0:100])
-plt.title('Composite of all Tree Ring Records in SouthEast Canada')    
+plt.title('Composite of all Tree Ring Records from Asia')    
 plt.xlabel("Year")
 plt.ylabel("Standard Deviation")
 plt.show()
+
+
+# ## Further exploration
+# 
+# Search for a different record and look at the results.
+
+# ### Discussion
+# 
+# Use of data from both proxy records and climate models is crucial to the advancement of paleoclimate research.
+# * How many of you primarily work with proxy records?
+# * How many of you primarily work with model output?
+# * Do you often use data from both areas?
+
 
 
 # a bunch of PAGES2k style settings
@@ -160,7 +225,7 @@ class PAGES2k(object):
                     'Hyrax midden']
     markers = ['p', 'p', 'o', 'v', 'd', '*', 's', 's', '8','8', 'D', '^','h','1','2','3']
     markers_dict = dict(zip(archive_types, markers))
-
+    
     colors = [np.array([ 1.        ,  0.83984375,  0.        ]),
               np.array([ 0.73828125,  0.71484375,  0.41796875]),
               np.array([ 1.        ,  0.546875  ,  0.        ]),
@@ -178,10 +243,14 @@ class PAGES2k(object):
               np.array([ 0.2 ,  0.2,  0.8 ]),
               np.array([ 0.8 ,  0.80078125,  0.8 ])]
     colors_dict = dict(zip(archive_types, colors))
-def plot_sites(df, title=None, lon_col='Lon (E)', lat_col='Lat (N)', archiveType_col='Archive type',
-                title_size=20, title_weight='bold', figsize=[10, 8], projection=ccrs.Robinson(), markersize=50,
-                plot_legend=True, legend_ncol=3, legend_anchor=(0, -0.4), legend_fontsize=15, frameon=False, ax=None):
 
+
+
+
+def plot_sites(df, title=None, lon_col='Lon (E)', lat_col='Lat (N)', archiveType_col='Archive type',
+               title_size=20, title_weight='bold', figsize=[10, 8], projection=ccrs.Robinson(), markersize=50,
+               plot_legend=True, legend_ncol=3, legend_anchor=(0, -0.4), legend_fontsize=15, frameon=False, ax=None):
+    
     ''' Plot the location of the sites on a map
 
     Args:
@@ -211,9 +280,9 @@ def plot_sites(df, title=None, lon_col='Lon (E)', lat_col='Lat (N)', archiveType
     type_names = []
     df_archiveType_set = np.unique(df[archiveType_col])
     for type_name in df_archiveType_set:
-        selector = df["Archive type"]=="Tree Ring"
-        selector =df["PAGES 2k Region"]=="North America"
-        
+        #selector = df[archiveType_col] == type_name #why cant you specify tree ring around here??? using an if statement??
+        selector = df['Archive type']=="Tree Ring"
+        selector = df['PAGES 2k Region'] == "North America"
         type_names.append(f'{type_name} (n={len(df[selector])})')
         s_plots.append(
             ax.scatter(
@@ -235,6 +304,180 @@ def plot_sites(df, title=None, lon_col='Lon (E)', lat_col='Lat (N)', archiveType
         )
 
     return ax
+
+# Plot map of proxy data
+#print(metadata)
+
+ax = plot_sites(metadata, title=f'PAGES2k Network (n={len(metadata)})')
+#or index archive type/region when calling the function???????????
+
+
+# a bunch of PAGES2k style settings
+class PAGES2k(object):
+    archive_types = [
+                    'Tree ring',
+                    ]
+    markers = ['h']
+    markers_dict = dict(zip(archive_types, markers))
+    
+    colors = [
+              np.array([ 0.1953125 ,  0.80078125,  0.1953125 ]),
+             ]
+    colors_dict = dict(zip(archive_types, colors))
+    
+    print(archive_types, markers)
+
+
+
+def plot_sites(df, title=None, lon_col='Lon (E)', lat_col='Lat (N)', archiveType_col='Archive type',
+               title_size=20, title_weight='bold', figsize=[10, 8], projection=ccrs.Robinson(), markersize=50,
+               plot_legend=True, legend_ncol=3, legend_anchor=(0, -0.4), legend_fontsize=15, frameon=False, ax=None):
+    
+    ''' Plot the location of the sites on a map
+
+    Args:
+        df (Pandas DataFrame): the Pandas DataFrame
+
+    Returns:
+        ax (Axes): the map plot of the sites
+
+    '''
+    p = PAGES2k()
+    if ax is None:
+        fig = plt.figure(figsize=figsize)
+        ax = plt.subplot(projection=projection)
+
+    sns.set(style="ticks", font_scale=2)
+
+    # plot map
+    if title:
+        plt.title(title, fontsize=title_size, fontweight=title_weight)
+
+    ax.set_global()
+    ax.add_feature(cfeature.LAND, facecolor='gray', alpha=0.3)
+    ax.gridlines(edgecolor='gray', linestyle=':')
+
+    # plot markers by archive types
+    s_plots = []
+    type_names = []
+    df_archiveType_set = np.unique(df[archiveType_col])
+    for type_name in df_archiveType_set:
+        selector = df[archiveType_col] == type_name
+        type_names.append(f'{type_name} (n={len(df[selector])})')
+        s_plots.append(
+            ax.scatter(
+                df[selector][lon_col], df[selector][lat_col], marker=p.markers_dict[type_name],
+                c=p.colors_dict[type_name], edgecolor='k', s=markersize, transform=ccrs.PlateCarree()
+            )
+        )
+
+    # plot legend
+    if plot_legend:
+        plt.legend(
+            s_plots, type_names,
+            scatterpoints=1,
+            bbox_to_anchor=legend_anchor,
+            loc='lower left',
+            ncol=legend_ncol,
+            frameon=frameon,
+            fontsize=legend_fontsize
+        )
+   
+    return ax
+
+
+
+# Plot map of proxy data
+print(metadata)
+ax = plot_sites(metadata, title=f'PAGES2k Network (n={len(metadata)})')
+
+##################################
+# Read in Observational Temp Dataset
+##################################
+
+# Composite Plus Scaling Method:
+# Step 1 = Center: The composite time series is centered by the addition of a constant, chosen so that, over a defined period of overlap, 
+# the time-mean of the composite time series equals that of the instrumental target series. 
+# Step 2 = Scale: The centered composite time series is multiplied by a scaling coefficient (e.g. by regressing the proxy composite onto temperature)
+stime = 1850
+etime = 2000
+nyears = 5
+
+# Directory where historical griddded data products and  reanalysis data can be found
+datadir_calib = '/Users/ograff/Downloads/LMR/notebooks/'
+
+xl = [stime, etime]
+# ==========================================
+# load GISTEMP, HadCRU, BerkeleyEarth, MLOST
+# ==========================================
+calib_vars = ['Tsfc']
+
+# load NOAA 20th cent reanalysis
+datafile_calib  = 'airtemp.sfc.mon.mean_noaa20cr.nc'
+[ctime,obs_lat,obs_lon,obs_temp] = read_gridded_data_NOAA20CR(datadir_calib,datafile_calib,calib_vars,outfreq='annual')
+obs_anomaly = obs_temp - np.mean(obs_temp, axis = 0)
+obs_time = np.array([d.year for d in ctime])
+
+# Average temp data over a specified region
+min_lat = 49.
+max_lat = 60.
+min_lon = -150.
+max_lon = -90.
+
+# Define calibration period
+start_yr = 1600
+end_yr = 2000
+
+min_lat_ix = np.argmin(abs(obs_lat - min_lat))
+max_lat_ix = np.argmin(abs(obs_lat - max_lat))
+
+min_lon_ix = np.argmin(abs(obs_lon - min_lon))
+max_lon_ix = np.argmin(abs(obs_lon - max_lon))
+
+min_tim_ix = np.argmin(abs(obs_time - start_yr))
+max_tim_ix = np.argmin(abs(obs_time - end_yr))
+
+obs_anomaly_select = obs_anomaly[:,max_lat_ix:min_lat_ix+1,min_lon_ix:max_lon_ix+1]
+obs_anom_avg = np.mean(np.mean(obs_anomaly_select, axis = 1),axis = 1)
+
+#obs_time = obs_time[min_tim_ix:max_tim_ix+1]
+obs_select = obs_temp[min_tim_ix:max_tim_ix,max_lat_ix:min_lat_ix+1, min_lon_ix:max_lon_ix+1]  # add 1 to the max lat to make it inclusive
+obs_anomaly = obs_select - np.mean(obs_select,axis=0)     # convert to anomaly (NOAA data is absolute temp in units of Kelvin)       
+print(obs_anomaly.shape)
+
+min_tim_ix = np.argmin(abs(obs_time-start_yr))
+max_tim_ix = np.argmin(abs(obs_time - end_yr))
+
+obs_time = obs_time[min_tim_ix:max_tim_ix+1]
+obs_anom_avg = obs_anom_avg[min_tim_ix:max_tim_ix+1]
+
+compose = compose.truncate(before=start_yr, after=end_yr, axis="index")
+center = np.mean(obs_anom_avg)
+comp_cent = compose + center
+slope, intercept, r_value, p_value, std_err = stats.linregress(obs_anom_avg, comp_cent) #linear regression of x, y
+scale = slope
+comp_scale = comp_cent/scale
+comp_scale = comp_cent
+print(obs_anom_avg.shape)
+print(comp_cent.shape)
+reference = metadata.loc[index_selected]['Reference']
+site_name = metadata.loc[index_selected]['Site']
+lat = metadata.loc[index_selected]['Lat (N)']
+lon = metadata.loc[index_selected]['Lon (E)']
+archive_type = metadata.loc[index_selected]['Archive type']
+measurement = metadata.loc[index_selected]['Proxy measurement']
+
+#make figure
+plt.style.use('ggplot')
+plt.figure(figsize =(15,5))
+ax = plt.axes([.1, .1,.8,.8])
+plt.plot(compose,color = 'k', marker = 'o', linewidth = 1)
+plt.plot(obs_time,obs_anom_avg, color = 'b', marker = 'o', linewidth = '1')
+plt.xlabel('Years (C.E.)')
+plt.xlim(1850,2010)
+plt.ylabel('Degrees C')
+plt.title('Proxy Records in North America (black) vs Observed Temperature (blue)')
+plt.show()
 
 
 
