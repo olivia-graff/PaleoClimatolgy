@@ -1,0 +1,245 @@
+#!/usr/bin/env python3
+# -*- coding: utf-8 -*-
+"""
+Created on Wed Nov 17 15:23:32 2021
+
+@author: ograff
+"""
+
+# #The proxy database
+##
+# One of the initial steps of running the LMR is to preprocess the proxy network.  This step puts the data into a standard format and calculates annual-mean values, among other things.  Let's take a look at these standard files.
+
+# In[2]:
+
+
+# A non-python command to make sure all figures are plotted on this page.
+get_ipython().run_line_magic('matplotlib', 'inline')
+
+
+# In[1]:
+
+
+# Import the necessary python packages
+import numpy as np
+import matplotlib.pyplot as plt
+import pandas as pd
+import cartopy.crs as ccrs
+import seaborn as sns
+import cartopy.feature as cfeature
+from load_gridded_data import read_gridded_data_NOAA20CR
+
+
+# In[4]:
+
+
+# Load the proxy data and metadata using the pandas library.
+proxies = pd.read_pickle('/Users/ograff/Downloads/LMR/LMR_data/data/proxies/Pages2kv1_Proxies.df.pckl')
+metadata = pd.read_pickle('/Users/ograff/Downloads/LMR/LMR_data/data/proxies/Pages2kv1_Metadata.df.pckl')
+
+
+# The "type" and "shape" commands can be used to learn more about the data set.
+# The proxy data:
+print(type(proxies))
+print(proxies.shape)
+
+
+# In[6]:
+
+
+# The proxy metadata:
+print(type(metadata))
+print(metadata.shape)
+
+# Let's look at the contents of the proxy file.
+print(proxies)
+
+# The "keys" command shows all of the keys for this dataset.
+print(proxies.keys())
+
+
+# Display all of the fields in the metadata file.
+print(metadata.keys())
+
+
+# As an example, plot the metadata of the first record.
+# Loop through every element of the metadata and print it to screen.
+for key in metadata.keys():
+    print('%27s : %20s' % (key, metadata.loc[100][key]))
+    
+# We can write some code to search the metadata for a proxy we're interested in.
+search_string = 'North America'
+field_to_search = 'PAGES 2k Region'
+na_array=[]
+searchstring='Tree ring'
+fieldtosearch='Archive type'
+#search_string = 'lake'
+#field_to_search = 'Archive type'
+
+# Loop through every key.  If part of the key matches the the search string, print the index and the key.
+n_proxies = metadata.shape[0]
+print('%5s: %20s: %20s: %20s:' % ('index','Site','Country/Region','Archive type'))
+#n_proxies
+for i in range(386,404):
+    if i != 389 or i != 390 or i != 397 or i != 398 :
+        if isinstance(metadata.loc[i][field_to_search], str):
+            if search_string.lower() in metadata.loc[i][field_to_search].lower():
+                print('%5s: %20s, %20s, %20s' % (i, metadata.loc[i]['Site'], metadata.loc[i]['Country/Region'], metadata.loc[i]['Archive type']))
+                na_array=np.append(na_array,i)
+
+print(na_array)
+
+
+# Choose the index of a record you're interested in.
+index_selected = 386
+# Loop through every element of the metadata and print it to screen.
+for key in metadata.keys():
+    print('%27s : %20s' % (key, metadata.loc[index_selected][key]))
+
+
+# Get the key of the desired record.
+proxyID_selected = metadata.loc[na_array]['Proxy ID']
+print(proxyID_selected)
+
+#5 plotting
+# Get the data for this record.
+proxy_data = proxies[proxyID_selected]
+print(proxy_data.shape) #years, #records per year
+standardize = (proxy_data - proxy_data.mean())/proxy_data.std()
+compose = standardize.mean(axis=1)
+
+
+# Save some useful metadata to new variables.
+reference    = metadata.loc[index_selected]['Reference']
+site_name    = metadata.loc[index_selected]['Site']
+lat          = metadata.loc[index_selected]['Lat (N)']
+lon          = metadata.loc[index_selected]['Lon (E)']
+archive_type = metadata.loc[index_selected]['Archive type']
+measurement  = metadata.loc[index_selected]['Proxy measurement']
+
+
+#5 again can plot mean2 instead of what was done above
+mean = np.mean(proxy_data, axis = 0)
+std = np.std(proxy_data, axis = 0)
+standardize = (proxy_data-mean)/ std
+mean2 = np.mean(standardize, axis = 1)
+#print(meanshape)
+
+
+# Make a figure of the proxy record.
+plt.style.use('ggplot')
+
+plt.figure(figsize=(15,5))
+ax = plt.axes([.1,.1,.8,.8])
+plt.plot(compose,color='k',marker='o',linewidth=1)
+#plt.title(str(site_name)+" ("+str(archive_type)+").  Lat: "+str(lat)+"$^\circ$N, Lon: "+\
+          #str(lon)+"$^\circ$E\nReference: "+reference[0:100])
+plt.title('Composite of all Tree Ring Records in SouthEast Canada')    
+plt.xlabel("Year")
+plt.ylabel("Standard Deviation")
+plt.show()
+
+
+# a bunch of PAGES2k style settings
+class PAGES2k(object):
+    archive_types = ['Bivalve',
+                    'Borehole',
+                    'Coral',
+                    'Documentary',
+                    'Ice core',
+                    'Hybrid',
+                    'Lake/wetland sediments',
+                    'Lake sediment',
+                    'Marine sediment',
+                    'Marine sediments',
+                    'Sclerosponge',
+                    'Speleothem',
+                    'Tree ring',
+                    'Historic',
+                    'Instrumental',
+                    'Hyrax midden']
+    markers = ['p', 'p', 'o', 'v', 'd', '*', 's', 's', '8','8', 'D', '^','h','1','2','3']
+    markers_dict = dict(zip(archive_types, markers))
+
+    colors = [np.array([ 1.        ,  0.83984375,  0.        ]),
+              np.array([ 0.73828125,  0.71484375,  0.41796875]),
+              np.array([ 1.        ,  0.546875  ,  0.        ]),
+              np.array([ 0.41015625,  0.41015625,  0.41015625]),
+              np.array([ 0.52734375,  0.8046875 ,  0.97916667]),
+              np.array([ 0.        ,  0.74609375,  1.        ]),
+              np.array([ 0.25390625,  0.41015625,  0.87890625]),
+              np.array([ 0.25390625,  0.41015625,  0.87890625]),
+              np.array([ 0.54296875,  0.26953125,  0.07421875]),
+              np.array([ 0.54296875,  0.26953125,  0.07421875]),
+              np.array([ 1         ,           0,           0]),
+              np.array([ 1.        ,  0.078125  ,  0.57421875]),
+              np.array([ 0.1953125 ,  0.80078125,  0.1953125 ]),
+              np.array([ 0.1953125 ,  0.80078125,  0.8 ]),
+              np.array([ 0.2 ,  0.2,  0.8 ]),
+              np.array([ 0.8 ,  0.80078125,  0.8 ])]
+    colors_dict = dict(zip(archive_types, colors))
+def plot_sites(df, title=None, lon_col='Lon (E)', lat_col='Lat (N)', archiveType_col='Archive type',
+                title_size=20, title_weight='bold', figsize=[10, 8], projection=ccrs.Robinson(), markersize=50,
+                plot_legend=True, legend_ncol=3, legend_anchor=(0, -0.4), legend_fontsize=15, frameon=False, ax=None):
+
+    ''' Plot the location of the sites on a map
+
+    Args:
+        df (Pandas DataFrame): the Pandas DataFrame
+
+    Returns:
+        ax (Axes): the map plot of the sites
+
+    '''
+    p = PAGES2k()
+    if ax is None:
+        fig = plt.figure(figsize=figsize)
+        ax = plt.subplot(projection=projection)
+
+    sns.set(style="ticks", font_scale=2)
+
+    # plot map
+    if title:
+        plt.title(title, fontsize=title_size, fontweight=title_weight)
+
+    ax.set_global()
+    ax.add_feature(cfeature.LAND, facecolor='gray', alpha=0.3)
+    ax.gridlines(edgecolor='gray', linestyle=':')
+
+    # plot markers by archive types
+    s_plots = []
+    type_names = []
+    df_archiveType_set = np.unique(df[archiveType_col])
+    for type_name in df_archiveType_set:
+        selector = df["Archive type"]=="Tree Ring"
+        selector =df["PAGES 2k Region"]=="North America"
+        
+        type_names.append(f'{type_name} (n={len(df[selector])})')
+        s_plots.append(
+            ax.scatter(
+                df[selector][lon_col], df[selector][lat_col], marker=p.markers_dict[type_name],
+                c=p.colors_dict[type_name], edgecolor='k', s=markersize, transform=ccrs.PlateCarree()
+            )
+        )
+
+    # plot legend
+    if plot_legend:
+        plt.legend(
+            s_plots, type_names,
+            scatterpoints=1,
+            bbox_to_anchor=legend_anchor,
+            loc='lower left',
+            ncol=legend_ncol,
+            frameon=frameon,
+            fontsize=legend_fontsize
+        )
+
+    return ax
+
+
+
+
+
+
+
+
