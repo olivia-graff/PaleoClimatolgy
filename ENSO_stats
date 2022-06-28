@@ -1,0 +1,100 @@
+#!/usr/bin/env python3
+# -*- coding: utf-8 -*-
+"""
+Created on Wed Nov 24 11:00:35 2021
+
+@author: ograff
+"""
+
+#reading LMR v 2.0  -- actually im going to 
+import pandas as pd
+# Import the necessary python packages
+import numpy as np
+import matplotlib.pyplot as plt
+import cartopy.crs as ccrs
+import seaborn as sns
+import cartopy.feature as cfeature
+from load_gridded_data import read_gridded_data_NOAA20CR
+import scipy.stats
+from scipy.stats.mstats import linregress
+import cartopy.feature as cfeature
+import proplot #conda install -c conda-forge proplot
+import warnings
+import xarray as xr
+warnings.filterwarnings('ignore')
+from numpy import cov
+from scipy.stats import pearsonr
+
+range1501_2001 = []
+#to open the csv with all data and all rows 
+df_excel = pd.read_csv('/Users/ograff/Downloads/ENSO_Proxy_Reconstructions_version3.csv',header = 0)
+#,skiprows =1)
+
+#to get the first coloumn of data: (you can do this by putting in the title name for any column)
+LMRNino34 = df_excel['Stahle et al (1998) SOI from Jones and Mann (2004)']
+
+#we want years 1501 to 2001 so loop through and append to an array
+LMR1501_2001 = []
+standard_LMR34 = []
+
+for i in range(1950,1977):
+    LMR1501_2001.append(LMRNino34[i])
+    
+cook = []
+cooketal = df_excel['Cook et al (2008)']
+for i in range(1950,2001):
+    cook.append(cooketal[i])
+  
+#=== Temp Obs data ====================
+ds = xr.open_dataset('/Users/ograff/Downloads/airtemp.sfc.mon.mean_noaa20cr.nc') #I put AirTemp file in same directory as notebook
+temp = ds.air.groupby('time.year').mean(dim='time') #annual mean temp (was monthly)
+temp = temp.sortby('lat').assign_coords(lon=(temp.lon.values + 180) % 360 - 180).sortby('lon') #rearraning to make lats ascending and going to -180 to 180 lons for simplicity, and sorting accordingly
+temp = temp.sel(year=slice(1950,1976),lat=slice(-5,5), lon=slice(-170,-120)) #want this time frame and SE canada region - Do we want pacific?? probably 
+temp_anom = (temp - temp.mean(dim='year')) #/ temp.std(dim='year') #regular anomalies (NOT standardized) at each lat/lon grid cell through time
+temp_anom_COMPOSITE = temp_anom.mean(dim=['lat','lon']) #spatially averaging the standardized anomalies in SECA, should just be timeseries now
+ds.close()
+tempmean = temp_anom_COMPOSITE.mean().values
+
+
+mask2 = np.isnan(LMR1501_2001) 
+#print(mask2)
+mask3 = np.isnan(temp_anom_COMPOSITE)
+print(mask3)
+
+m, b, rval, pval, stderr = linregress(LMR1501_2001,temp_anom_COMPOSITE) #+tempmean
+for name, val in zip(['m','b','R','R^2','pval','stderr'], [m,b,rval,rval**2,pval,stderr]):
+    print(f'{name}: {val}')
+
+# Make a figure of composite standardized anomalies
+plt.figure(figsize=(15,8))
+ax = plt.axes([.1,.1,.8,.8])
+ax.plot(temp_anom_COMPOSITE.year, temp_anom_COMPOSITE, color='red',marker='o',linewidth=1, label=r'Temp Anomaly ($\degree$C)')
+ax.plot(temp_anom_COMPOSITE.year, LMR1501_2001, color='blue',marker='o',linewidth=1, label=r'Stahle et al (1998) SOI from Jones and Mann (2004)')
+
+
+ax.set_xlim(1950,2000)
+#ax.set_ylim(-1,1.2)
+#ax.set_ylim(-3.,3)
+ax.axhline(0,ls='--',lw=1,color='k')
+plt.title('Stahle et al (1998) SOI from Jones and Mann (2004) vs Temperature Composite Mean')
+plt.xlabel("Year")
+#ax.set_ylabel('Standardized Anomaly')
+plt.grid()
+plt.legend()
+plt.show()
+
+
+#==============================================
+covariance = cov(LMR1501_2001,temp_anom_COMPOSITE)
+print(covariance)
+'''
+The coefficient returns a value between -1 and 1 that represents the limits 
+of correlation from a full negative correlation to a full positive correlation. 
+A value of 0 means no correlation. The value must be interpreted, where often 
+a value below -0.5 or above 0.5 indicates a notable correlation, and values below 
+those values suggests a less notable correlation.
+
+'''
+
+corr, _ = pearsonr(LMR1501_2001,temp_anom_COMPOSITE)
+print(corr)
